@@ -70,6 +70,34 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
+# Application Load Balancer
+resource "aws_lb" "lab_alb" {
+  name               = "lab-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = data.aws_subnets.default.ids
+}
+
+resource "aws_lb_target_group" "k3s_tg" {
+  name     = "k3s-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = data.aws_vpc.default.id
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.lab_alb.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.cert.arn
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.k3s_tg.arn
+  }
+}
+
 # Instância EC2
 resource "aws_instance" "k3s_node" {
   ami                    = "ami-0c7217cdde317cfec" # Ubuntu 22.04 em us-east-1
