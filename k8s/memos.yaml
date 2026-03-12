@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memos
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memos
+  template:
+    metadata:
+      labels:
+        app: memos
+    spec:
+      containers:
+      - name: memos
+        image: neosmemo/memos:latest
+        ports:
+        - containerPort: 5230
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: memos-svc
+spec:
+  selector:
+    app: memos
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5230
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: memos-ingress
+  annotations:
+    traefik.ingress.kubernetes.io/router.pathmatcher: PathPrefix
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: memos-svc
+            port:
+              number: 80
